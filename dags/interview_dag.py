@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from airflow.decorators import dag, task
 from airflow.providers.postgres.operators.postgres import PostgresOperator 
 
-from interview.etl_spotify import client_credential, transform_artists, extract_playlist_tracks_artists, spotify_db_conn
+from interview.etl_spotify import SpotifyClient, spotify_db_conn
 import pandas as pd
 import csv
 
@@ -19,17 +19,17 @@ default_args={
 
 
 @dag(description= 'DAG made for interview at MESHA', start_date= datetime(2022, 4, 16), schedule_interval= '@daily', default_args= default_args, tags = ['interview'], catchup= False)
-def spotify_vagalumes_dag(): 
+def spotify_dag(): 
     @task() 
-    def et_top_artists(): 
+    def et_top50_brasil_artists(): 
         client_ID = "42e08bce9c444915b66fa8569f3e3d00" 
         client_secret = "e0bb81c40e4d4b0e859c2477de4ddbc5" 
-        top50Brasil = "37i9dQZEVXbMXbN3EUUhlg"
+        top50_brasil = "37i9dQZEVXbMXbN3EUUhlg"
 
-        extracted_data = extract_playlist_tracks_artists(top50Brasil, client_credential(client_ID, client_secret))
-        transformed_data = transform_artists(extracted_data)   
-        pd.DataFrame.from_dict(transformed_data).to_csv("dags/interview/tmp/artists.csv", header=True, index=False) 
-    extract_transform = et_top_artists()
+        spotify = SpotifyClient(client_ID, client_secret)
+        extracted_data = spotify.extract_playlist_artists(top50_brasil, 50) 
+        pd.DataFrame.from_dict(extracted_data).to_csv("dags/interview/tmp/artists.csv", header=True, index=False) 
+    extract_transform = et_top50_brasil_artists()
     
     truncate_artists = PostgresOperator(
         task_id="truncate_top_artists",
@@ -50,5 +50,5 @@ def spotify_vagalumes_dag():
     load = load_artists()
 
     extract_transform >> truncate_artists >> load
-    
-dag = spotify_vagalumes_dag() 
+
+dag = spotify_dag() 
