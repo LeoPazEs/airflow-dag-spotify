@@ -48,7 +48,7 @@ class SpotifyClient():
         } 
         tracks = requests.get(url, headers= header)  
         json_response = tracks.json()
-        return SpotifyClient.transform_artists(json_response["items"])
+        return json_response["items"]
 
 
 def spotify_db_conn(): 

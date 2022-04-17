@@ -28,7 +28,8 @@ def spotify_dag():
 
         spotify = SpotifyClient(client_ID, client_secret)
         extracted_data = spotify.extract_playlist_artists(top50_brasil, 50) 
-        pd.DataFrame.from_dict(extracted_data).to_csv("dags/interview/tmp/artists.csv", header=True, index=False) 
+        flat_artists = SpotifyClient.transform_artists(extracted_data)
+        pd.DataFrame.from_dict(flat_artists).to_csv("dags/interview/tmp/artists.csv", header=True, index=False) 
     extract_transform = et_top50_brasil_artists()
     
     truncate_artists = PostgresOperator(
