@@ -20,16 +20,14 @@ def vagalumes_top100_crawler(url):
 # ASYNC CODE
 async def url_open(url, session):
     async with session.get(url) as response: 
-        response =  await response.read()
-    return response
+        return await response.read()
 
 async def request_popularity_data(urls):
     async with aiohttp.ClientSession() as session: 
         tasks = [] 
         for url in urls: 
             tasks.append(asyncio.create_task(url_open(url, session)))
-        k = await asyncio.gather(*tasks) 
-    return k  
+        return await asyncio.gather(*tasks)  
 
 def get_musicas(data): 
     artist_popularity = Sp(data, 'html.parser') 
