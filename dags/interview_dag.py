@@ -3,9 +3,7 @@ from datetime import datetime, timedelta
 from airflow.decorators import dag, task
 from airflow.providers.postgres.operators.postgres import PostgresOperator 
 
-from interview.etl_spotify import SpotifyClient, spotify_db_conn
-import pandas as pd
-import csv
+
 
 default_args={
         'depends_on_past': False,
@@ -22,6 +20,8 @@ default_args={
 def spotify_dag(): 
     @task() 
     def et_top50_brasil_artists(): 
+        from interview.etl_spotify import SpotifyClient
+        import pandas as pd
         client_ID = "42e08bce9c444915b66fa8569f3e3d00" 
         client_secret = "e0bb81c40e4d4b0e859c2477de4ddbc5" 
         top50_brasil = "37i9dQZEVXbMXbN3EUUhlg"
@@ -40,6 +40,8 @@ def spotify_dag():
 
     @task() 
     def load_artists(): 
+        from interview.etl_spotify import spotify_db_conn
+        import csv
         conn = spotify_db_conn()  
         cursor = conn.cursor()
         with open('dags/interview/tmp/artists.csv', 'r') as f:
@@ -48,8 +50,25 @@ def spotify_dag():
             for row in reader:
                 cursor.execute( "INSERT INTO artists(name) VALUES (%s)", row) 
         conn.commit()
-    load = load_artists()
+    load = load_artists() 
 
-    extract_transform >> truncate_artists >> load
+    @task()
+    def et_urls(): 
+        from interview.vagalumes_crawler import vagalumes_top100_crawler 
+        url = "https://www.vagalume.com.br/top100/artistas/geral/2022/04/"
+        return vagalumes_top100_crawler(url)
+
+    @task(multiple_outputs=True) 
+    def et_top100_vagalumes_musics(urls): 
+        from interview.vagalumes_crawler import flat_musics
+        return flat_musics(urls) 
+    
+    @task
+    def load_top100_vagalumes_musics(data): 
+        import pandas as pd
+        pd.DataFrame.from_dict(data).to_csv("dags/interview/tmp/musics.csv", header=True, index=False)
+
+    extract_transform >> truncate_artists >> load 
+    load_top100_vagalumes_musics(et_top100_vagalumes_musics(et_urls()))
 
 dag = spotify_dag() 
