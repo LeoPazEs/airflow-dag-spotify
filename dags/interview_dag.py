@@ -17,7 +17,7 @@ default_args={
 
 
 @dag(description= 'DAG made for interview at MESHA', start_date= datetime(2022, 4, 16), schedule_interval= '@daily', default_args= default_args, tags = ['interview'], catchup= False)
-def spotify_dag(): 
+def interview_dag(): 
     @task() 
     def et_top50_brasil_artists(): 
         from interview.etl_spotify import SpotifyClient
@@ -71,4 +71,4 @@ def spotify_dag():
     extract_transform >> truncate_artists >> load 
     load_top100_vagalumes_musics(et_top100_vagalumes_musics(et_urls()))
 
-dag = spotify_dag() 
+dag = interview_dag() 
